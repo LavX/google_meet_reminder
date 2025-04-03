@@ -10,6 +10,11 @@ const resetButton = document.getElementById('reset-btn');
 const previewAudio = document.getElementById('preview-audio');
 
 // Early notification elements
+const devToolsToggle = document.getElementById('dev-tools-toggle');
+const devToolsContent = document.getElementById('dev-tools-content');
+const testNotificationBtn = document.getElementById('test-notification-btn');
+const testEarlyNotificationBtn = document.getElementById('test-early-notification-btn');
+
 const earlyNotificationsToggle = document.getElementById('early-notifications-toggle');
 const fifteenMinToggle = document.getElementById('fifteen-min-toggle');
 const tenMinToggle = document.getElementById('ten-min-toggle');
@@ -112,6 +117,7 @@ function createRingtoneCard(ringtone) {
   card.className = 'ringtone-card';
   card.dataset.path = ringtone.isCustom ? ringtone.dataUrl : ringtone.path;
   card.dataset.isCustom = ringtone.isCustom || false;
+  if (ringtone.isCustom) card.dataset.id = ringtone.id;
   card.dataset.isDefault = ringtone.isDefault || false;
   
   // Format the name (remove "Grace UX" prefix)
@@ -129,7 +135,15 @@ function createRingtoneCard(ringtone) {
         </svg>
       </button>
     </div>
-    ${ringtone.isCustom ? '<div class="custom-tag">Custom</div>' : ''}
+    ${ringtone.isCustom ? `
+      <div class="custom-tag">Custom</div>
+      <button class="delete-btn" aria-label="Delete ${displayName}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </button>
+    ` : ''}
   `;
   
   // Add event listeners
@@ -145,6 +159,20 @@ function createRingtoneCard(ringtone) {
     e.stopPropagation();
     togglePreview(card, ringtone);
   });
+  
+  // Add delete button event listener for custom ringtones
+  if (ringtone.isCustom) {
+    const deleteButton = card.querySelector('.delete-btn');
+    deleteButton.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (confirm(`Are you sure you want to delete the custom ringtone "${displayName}"?`)) {
+        const success = await StorageManager.removeCustomRingtone(ringtone.id);
+        if (success) {
+          await loadRingtones(); // Reload ringtones after deletion
+        }
+      }
+    });
+  }
   
   return card;
 }
@@ -267,6 +295,45 @@ function setupEventListeners() {
   fifteenMinSoundToggle.addEventListener('change', saveEarlyNotificationSettings);
   tenMinSoundToggle.addEventListener('change', saveEarlyNotificationSettings);
   fiveMinSoundToggle.addEventListener('change', saveEarlyNotificationSettings);
+
+  // Developer tools dropdown toggle
+  devToolsToggle.addEventListener('click', () => {
+    devToolsContent.classList.toggle('hidden');
+    devToolsToggle.classList.toggle('active');
+    const toggleIcon = devToolsToggle.querySelector('.toggle-icon');
+    if (devToolsContent.classList.contains('hidden')) {
+      toggleIcon.textContent = '▼';
+    } else {
+      toggleIcon.textContent = '▲';
+    }
+  });
+
+  // Test notification buttons
+  testNotificationBtn.addEventListener('click', () => {
+    testNotificationBtn.disabled = true;
+    testNotificationBtn.textContent = 'Triggering test...';
+    
+    chrome.runtime.sendMessage({ action: 'triggerTestNotification' }, (response) => {
+      testNotificationBtn.textContent = response.success ? 'Test notification sent!' : 'Test failed';
+      setTimeout(() => {
+        testNotificationBtn.textContent = 'Test Notification';
+        testNotificationBtn.disabled = false;
+      }, 2000);
+    });
+  });
+
+  testEarlyNotificationBtn.addEventListener('click', () => {
+    testEarlyNotificationBtn.disabled = true;
+    testEarlyNotificationBtn.textContent = 'Triggering test...';
+    
+    chrome.runtime.sendMessage({ action: 'triggerTestEarlyNotification' }, (response) => {
+      testEarlyNotificationBtn.textContent = response.success ? 'Test notification sent!' : 'Test failed';
+      setTimeout(() => {
+        testEarlyNotificationBtn.textContent = 'Test Early Notification';
+        testEarlyNotificationBtn.disabled = false;
+      }, 2000);
+    });
+  });
   
   updateEarlyNotificationUIState();
 }

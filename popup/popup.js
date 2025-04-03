@@ -4,9 +4,6 @@
 const statusContainer = document.getElementById('status-container');
 const statusMessage = document.getElementById('status-message');
 const authButton = document.getElementById('auth-button');
-const testContainer = document.getElementById('test-container');
-const testButton = document.getElementById('test-button');
-const testEarlyButton = document.getElementById('test-early-button');
 const settingsLink = document.getElementById('settings-link');
 
 // Initialize popup
@@ -16,8 +13,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Add event listeners
   authButton.addEventListener('click', handleAuthClick);
-  testButton.addEventListener('click', handleTestClick);
-  testEarlyButton.addEventListener('click', handleTestEarlyClick);
   settingsLink.addEventListener('click', handleSettingsClick);
   
   // Check current status
@@ -44,9 +39,6 @@ function updateUI(status) {
     statusContainer.className = 'status authenticated';
     statusMessage.textContent = 'Connected to Google Calendar';
     
-    // Show test button when authenticated
-    testContainer.style.display = 'block';
-    
     // Show upcoming meetings count if available
     if (status.upcomingMeetings && status.upcomingMeetings.length > 0) {
       statusMessage.textContent += ` (${status.upcomingMeetings.length} upcoming meetings)`;
@@ -59,9 +51,6 @@ function updateUI(status) {
     statusContainer.className = 'status not-authenticated';
     statusMessage.textContent = 'Not connected to Google Calendar';
     authButton.textContent = 'Sign in with Google';
-    
-    // Hide test button when not authenticated
-    testContainer.style.display = 'none';
   }
   
   // Show active notifications if any
@@ -109,67 +98,6 @@ function showError(message) {
   statusMessage.textContent = message;
   authButton.textContent = 'Try Again';
   authButton.disabled = false;
-  
-  // Hide test button on error
-  testContainer.style.display = 'none';
-}
-
-// Handle test button click
-async function handleTestClick() {
-  try {
-    // Disable button during test
-    testButton.disabled = true;
-    testButton.textContent = 'Triggering test...';
-    
-    // Send test notification request to background script
-    const result = await chrome.runtime.sendMessage({ action: 'triggerTestNotification' });
-    
-    if (result.success) {
-      testButton.textContent = 'Test notification sent!';
-      
-      // Reset button after 2 seconds
-      setTimeout(() => {
-        testButton.textContent = 'Test Notification';
-        testButton.disabled = false;
-      }, 2000);
-    } else {
-      testButton.textContent = 'Test failed';
-      testButton.disabled = false;
-    }
-  } catch (error) {
-    console.error('Test notification error:', error);
-    testButton.textContent = 'Test failed';
-    testButton.disabled = false;
-  }
-}
-
-// Handle test early notification button click
-async function handleTestEarlyClick() {
-  try {
-    // Disable button during test
-    testEarlyButton.disabled = true;
-    testEarlyButton.textContent = 'Triggering test...';
-    
-    // Send test early notification request to background script
-    const result = await chrome.runtime.sendMessage({ action: 'triggerTestEarlyNotification' });
-    
-    if (result.success) {
-      testEarlyButton.textContent = 'Test notification sent!';
-      
-      // Reset button after 2 seconds
-      setTimeout(() => {
-        testEarlyButton.textContent = 'Test Early Notification';
-        testEarlyButton.disabled = false;
-      }, 2000);
-    } else {
-      testEarlyButton.textContent = 'Test failed';
-      testEarlyButton.disabled = false;
-    }
-  } catch (error) {
-    console.error('Test early notification error:', error);
-    testEarlyButton.textContent = 'Test failed';
-    testEarlyButton.disabled = false;
-  }
 }
 
 // Handle settings link click
