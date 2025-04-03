@@ -12,7 +12,7 @@ The current focus is on improving the user experience of the Google Meet Reminde
 
 ## Recent Changes
 
-### April 3, 2025 - Enhanced Aurora Animation
+### April 3, 2025 - Enhanced Animations
 
 1. **Improved Aurora Background Animation**
    - Implemented a new Aurora animation class with improved visual effects
@@ -20,6 +20,13 @@ The current focus is on improving the user experience of the Google Meet Reminde
    - Used customizable color stops with vibrant purple, pink, and red gradient
    - Added configurable animation parameters (blend, amplitude, speed)
    - Improved WebGL shader implementation with better performance
+
+2. **Enhanced Orb Animation**
+   - Implemented a new Orb animation class with improved visual effects
+   - Added interactive hover effects with rotation and distortion
+   - Added customizable hue and hover intensity parameters
+   - Improved WebGL shader implementation with better performance
+   - Added smooth transitions and fluid motion
 
 ### April 2, 2025 - Notification Window Improvements
 

@@ -67,10 +67,10 @@ Replace the current notification.html structure with a new layout featuring:
 - Create fluid motion with improved WebGL shaders
 
 #### 2.2 Orb Implementation
-- Adapt the WebGL shader code for the orb
-- Create separate canvas for the orb
-- Set up WebGL context and shader program for the orb
-- Add hover and click effects
+- Implement a dedicated Orb class for improved animation
+- Add interactive hover effects with rotation and distortion
+- Add customizable hue and hover intensity parameters
+- Implement smooth transitions and fluid motion
 - Position "Join" text in the center of the orb
 
 ### 3. JavaScript Functionality

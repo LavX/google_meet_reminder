@@ -8,16 +8,10 @@ const declineButton = document.getElementById('decline-button');
 const ringtone = document.getElementById('ringtone');
 const notificationContainer = document.querySelector('.notification-container');
 const auroraContainer = document.getElementById('aurora-container');
-const orbCanvas = document.getElementById('orb-canvas');
 
-// WebGL contexts
-let orbGL = null;
-
-// Aurora instance
+// WebGL instances
 let aurora = null;
-
-// Animation frames
-let orbAnimationFrame = null;
+let orb = null;
 
 // Meeting data
 let meetingId = '';
@@ -70,152 +64,33 @@ function initWebGL() {
 function initAuroraEffect() {
   // Create new Aurora instance
   aurora = new Aurora(auroraContainer, {
-    colorStops: ["#3A29FF", "#FF94B4", "#FF3232"],
+    colorStops: ["#32edc1", "#7a52ff", "#28c3de"],
     blend: 0.5,
-    amplitude: 1.0,
-    speed: 0.5
+    amplitude: 0.5,
+    speed: 0.2
   });
 }
 
 // Initialize Orb effect
 function initOrbEffect() {
-  // Set canvas size for better visibility
-  orbCanvas.width = 250;
-  orbCanvas.height = 250;
-  
-  // Get WebGL context
-  orbGL = orbCanvas.getContext('webgl') || orbCanvas.getContext('experimental-webgl');
-  
-  if (!orbGL) {
-    throw new Error('Could not initialize WebGL for orb effect');
-  }
-  
-  // Orb shader program
-  const orbVertexShader = `
-    attribute vec2 position;
-    void main() {
-      gl_Position = vec4(position, 0.0, 1.0);
-    }
-  `;
-  
-  const orbFragmentShader = `
-    precision mediump float;
-    uniform float time;
-    uniform vec2 resolution;
-    uniform vec2 mouse;
-    
-    float circle(vec2 uv, vec2 center, float radius, float blur) {
-      float d = length(uv - center);
-      return smoothstep(radius, radius - blur, d);
-    }
-    
-    void main() {
-      vec2 uv = gl_FragCoord.xy / resolution.xy;
-      uv = uv * 2.0 - 1.0;
-      uv.x *= resolution.x / resolution.y;
-      
-      // Base orb color
-      vec3 color = vec3(0.0);
-      
-      // Create orb
-      float orb = circle(uv, vec2(0.0), 0.8, 0.1);
-      
-      // Add glow
-      float glow = circle(uv, vec2(0.0), 1.0, 0.5);
-      
-      // Add inner details
-      float detail = circle(uv, vec2(0.0) + sin(time * 0.5) * 0.1, 0.5, 0.1);
-      
-      // Add light reflection
-      float light = circle(uv, vec2(0.3, -0.3), 0.1, 0.05);
-      
-      // Combine effects
-      vec3 orbColor = mix(vec3(0.0, 0.5, 1.0), vec3(0.0, 0.8, 1.0), detail);
-      orbColor = mix(orbColor, vec3(1.0), light * 0.8);
-      
-      // Add pulsing effect
-      float pulse = sin(time * 2.0) * 0.05 + 0.95;
-      orbColor *= pulse;
-      
-      // Apply orb and glow
-      color = mix(color, orbColor, orb);
-      color += vec3(0.0, 0.5, 1.0) * glow * 0.2;
-      
-      gl_FragColor = vec4(color, orb + glow * 0.2);
-    }
-  `;
-  
-  // Create shader program
-  const orbProgram = createShaderProgram(orbGL, orbVertexShader, orbFragmentShader);
-  orbGL.useProgram(orbProgram);
-  
-  // Set up geometry (full screen quad)
-  const positions = new Float32Array([
-    -1.0, -1.0,
-     1.0, -1.0,
-    -1.0,  1.0,
-     1.0,  1.0
-  ]);
-  
-  const positionBuffer = orbGL.createBuffer();
-  orbGL.bindBuffer(orbGL.ARRAY_BUFFER, positionBuffer);
-  orbGL.bufferData(orbGL.ARRAY_BUFFER, positions, orbGL.STATIC_DRAW);
-  
-  // Set up attributes and uniforms
-  const positionLocation = orbGL.getAttribLocation(orbProgram, 'position');
-  orbGL.enableVertexAttribArray(positionLocation);
-  orbGL.vertexAttribPointer(positionLocation, 2, orbGL.FLOAT, false, 0, 0);
-  
-  const timeLocation = orbGL.getUniformLocation(orbProgram, 'time');
-  const resolutionLocation = orbGL.getUniformLocation(orbProgram, 'resolution');
-  const mouseLocation = orbGL.getUniformLocation(orbProgram, 'mouse');
-  
-  // Set resolution
-  orbGL.uniform2f(resolutionLocation, orbCanvas.width, orbCanvas.height);
-  
-  // Enable transparency
-  orbGL.enable(orbGL.BLEND);
-  orbGL.blendFunc(orbGL.SRC_ALPHA, orbGL.ONE_MINUS_SRC_ALPHA);
-  
-  // Animation loop
-  let startTime = Date.now();
-  let mousePos = [0.5, 0.5];
-  
-  function animateOrb() {
-    // Calculate time
-    const time = (Date.now() - startTime) / 1000;
-    
-    // Update uniforms
-    orbGL.uniform1f(timeLocation, time);
-    orbGL.uniform2f(mouseLocation, mousePos[0], mousePos[1]);
-    
-    // Clear canvas
-    orbGL.clearColor(0, 0, 0, 0);
-    orbGL.clear(orbGL.COLOR_BUFFER_BIT);
-    
-    // Draw
-    orbGL.drawArrays(orbGL.TRIANGLE_STRIP, 0, 4);
-    
-    // Request next frame
-    orbAnimationFrame = requestAnimationFrame(animateOrb);
-  }
-  
-  // Start animation
-  animateOrb();
-  
-  // Handle mouse movement
-  joinButton.addEventListener('mousemove', (e) => {
-    const rect = orbCanvas.getBoundingClientRect();
-    mousePos = [
-      (e.clientX - rect.left) / rect.width,
-      1.0 - (e.clientY - rect.top) / rect.height
-    ];
+  // Create new Orb instance
+  orb = new Orb(joinButton, {
+    hue: 0,
+    hoverIntensity: 0.5,
+    rotateOnHover: true,
+    forceHoverState: false
   });
   
-  // Reset mouse position when mouse leaves
-  joinButton.addEventListener('mouseleave', () => {
-    mousePos = [0.5, 0.5];
-  });
+  // Ensure the Join text is properly centered on top of the orb
+  const orbText = document.querySelector('.orb-text');
+  orbText.style.zIndex = '10';
+  orbText.style.position = 'absolute';
+  orbText.style.width = '100%';
+  orbText.style.height = '100%';
+  orbText.style.display = 'flex';
+  orbText.style.justifyContent = 'center';
+  orbText.style.alignItems = 'center';
+  orbText.style.textAlign = 'center';
 }
 
 // Helper function to create shader program
@@ -258,7 +133,7 @@ function startRingtone() {
   // Try to play the ringtone
   try {
     // Set volume to 80%
-    ringtone.volume = 0.8;
+    ringtone.volume = 1.0;
     
     // Play the ringtone
     const playPromise = ringtone.play();
@@ -318,20 +193,14 @@ function stopRingtone() {
 
 // Clean up resources
 function cleanupWebGL() {
-  // Cancel animation frames
-  if (orbAnimationFrame) {
-    cancelAnimationFrame(orbAnimationFrame);
-  }
-  
   // Destroy Aurora instance
   if (aurora) {
     aurora.destroy();
   }
   
-  // Release WebGL resources
-  if (orbGL) {
-    const loseContext = orbGL.getExtension('WEBGL_lose_context');
-    if (loseContext) loseContext.loseContext();
+  // Destroy Orb instance
+  if (orb) {
+    orb.destroy();
   }
 }
 

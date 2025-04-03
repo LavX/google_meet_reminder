@@ -4,12 +4,14 @@
 class Aurora {
   constructor(container, options = {}) {
     this.container = container;
+    console.log('Aurora initialized with colors:', options.colorStops || ['Default colors']);
     this.options = {
-      colorStops: options.colorStops || ["#3A29FF", "#FF94B4", "#FF3232"],
-      amplitude: options.amplitude || 1.0,
+      colorStops: options.colorStops || ["#32edc1", "#7a52ff", "#28c3de"],
+      amplitude: options.amplitude || 0.5,
       blend: options.blend || 0.5,
-      speed: options.speed || 0.5
+      speed: options.speed || 0.2
     };
+    console.log('Final Aurora colors:', this.options.colorStops);
     
     this.animationId = null;
     this.init();
