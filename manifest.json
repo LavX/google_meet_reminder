@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Google Meet Reminder",
+  "version": "1.0.0",
+  "description": "Aggressively reminds you of Google Meet calls with popup and sound alerts",
+  "icons": {
+    "16": "assets/icons/icon.png",
+    "48": "assets/icons/icon.png",
+    "128": "assets/icons/icon.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon.png",
+      "48": "assets/icons/icon.png",
+      "128": "assets/icons/icon.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "identity",
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs",
+    "system.display"
+  ],
+  "oauth2": {
+    "client_id": "372956210374-jupiu1btpbvgbj3lkej2i2siljsva8c7.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/calendar.readonly"
+    ]
+  },
+  "host_permissions": [
+    "https://www.googleapis.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "notification/notification.html",
+        "assets/sounds/ringtone.mp3"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

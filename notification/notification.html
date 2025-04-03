@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> </title>
+  <link rel="stylesheet" href="notification.css">
+  <style>
+    /* Additional styles to help hide title bar */
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+    
+    /* Make the entire window draggable */
+    body {
+      -webkit-app-region: drag;
+    }
+    
+    /* Make buttons not draggable */
+    button {
+      -webkit-app-region: no-drag;
+    }
+  </style>
+</head>
+<body>
+  <!-- Aurora background canvas -->
+  <canvas id="aurora-background"></canvas>
+  
+  <div class="notification-container">
+    <!-- Meeting info section -->
+    <div class="meeting-info">
+      <div id="meeting-title" class="meeting-title">Loading meeting details...</div>
+      <div class="meeting-time">
+        <span id="meeting-time">--:--</span>
+      </div>
+    </div>
+    
+    <!-- Orb Join button section -->
+    <div class="orb-container" id="join-button">
+      <canvas id="orb-canvas"></canvas>
+      <div class="orb-text">Join</div>
+    </div>
+    
+    <!-- Reject button section -->
+    <button id="decline-button" class="reject-button">Decline</button>
+  </div>
+  
+  <!-- Audio element for ringtone -->
+  <audio id="ringtone" loop>
+    <source src="../assets/sounds/ringtone.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+  
+  <script src="notification.js"></script>
+</body>
+</html>
