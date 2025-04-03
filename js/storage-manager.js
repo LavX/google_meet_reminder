@@ -12,6 +12,8 @@ class StorageManager {
   // New storage keys for early notification and snooze features
   static EARLY_NOTIFICATION_SETTINGS_KEY = 'early_notification_settings';
   static SNOOZE_SETTINGS_KEY = 'snooze_settings';
+  static SCHEDULED_MEETINGS_KEY = 'scheduled_meetings';
+  static NOTIFIED_MEETINGS_KEY = 'notified_meetings';
   
   // Maximum file size for uploads (2MB)
   static MAX_FILE_SIZE = 2 * 1024 * 1024;
@@ -469,6 +471,121 @@ class StorageManager {
       return true;
     } catch (error) {
       console.error('Error cleaning up snoozes:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get scheduled meetings
+   * @returns {Promise<Object>} The scheduled meetings
+   */
+  static async getScheduledMeetings() {
+    try {
+      const data = await chrome.storage.local.get([this.SCHEDULED_MEETINGS_KEY]);
+      return data[this.SCHEDULED_MEETINGS_KEY] || {};
+    } catch (error) {
+      console.error('Error getting scheduled meetings:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Set scheduled meetings
+   * @param {Object} meetings - The scheduled meetings to save
+   * @returns {Promise<boolean>} Success status
+   */
+  static async setScheduledMeetings(meetings) {
+    try {
+      await chrome.storage.local.set({
+        [this.SCHEDULED_MEETINGS_KEY]: meetings
+      });
+      return true;
+    } catch (error) {
+      console.error('Error setting scheduled meetings:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if notification has been shown for a meeting
+   * @param {string} meetingId - The ID of the meeting
+   * @param {string} notificationType - The type of notification ('main', 'early15', 'early10', 'early5')
+   * @returns {Promise<boolean>} Whether the notification has been shown
+   */
+  static async hasNotificationBeenShown(meetingId, notificationType) {
+    try {
+      const data = await chrome.storage.local.get([this.NOTIFIED_MEETINGS_KEY]);
+      const notifiedMeetings = data[this.NOTIFIED_MEETINGS_KEY] || {};
+      return notifiedMeetings[meetingId] && 
+             notifiedMeetings[meetingId].notificationTypes.includes(notificationType);
+    } catch (error) {
+      console.error('Error checking notification status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Record that a notification has been shown
+   * @param {string} meetingId - The ID of the meeting
+   * @param {string} notificationType - The type of notification ('main', 'early15', 'early10', 'early5')
+   * @returns {Promise<boolean>} Success status
+   */
+  static async recordNotificationShown(meetingId, notificationType) {
+    try {
+      const data = await chrome.storage.local.get([this.NOTIFIED_MEETINGS_KEY]);
+      const notifiedMeetings = data[this.NOTIFIED_MEETINGS_KEY] || {};
+      
+      if (!notifiedMeetings[meetingId]) {
+        notifiedMeetings[meetingId] = {
+          notificationTypes: [],
+          timestamp: Date.now()
+        };
+      }
+      
+      if (!notifiedMeetings[meetingId].notificationTypes.includes(notificationType)) {
+        notifiedMeetings[meetingId].notificationTypes.push(notificationType);
+        notifiedMeetings[meetingId].timestamp = Date.now(); // Update timestamp
+      }
+      
+      await chrome.storage.local.set({
+        [this.NOTIFIED_MEETINGS_KEY]: notifiedMeetings
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error recording notification shown:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clean up old notification records
+   * @returns {Promise<boolean>} Success status
+   */
+  static async cleanupNotificationRecords() {
+    try {
+      const data = await chrome.storage.local.get([this.NOTIFIED_MEETINGS_KEY]);
+      const notifiedMeetings = data[this.NOTIFIED_MEETINGS_KEY] || {};
+      const now = Date.now();
+      let changed = false;
+      
+      // Remove records older than 24 hours
+      for (const [meetingId, record] of Object.entries(notifiedMeetings)) {
+        if (record.timestamp && (now - record.timestamp) > 24 * 60 * 60 * 1000) {
+          delete notifiedMeetings[meetingId];
+          changed = true;
+        }
+      }
+      
+      if (changed) {
+        await chrome.storage.local.set({
+          [this.NOTIFIED_MEETINGS_KEY]: notifiedMeetings
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error cleaning up notification records:', error);
       return false;
     }
   }

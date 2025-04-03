@@ -9,6 +9,7 @@ const NOTIFICATION_WIDTH = 800;
 const NOTIFICATION_HEIGHT = 700;
 const ALARM_NAME = 'calendar-check';
 const TOKEN_STORAGE_KEY = 'google_auth_token';
+const MAINTENANCE_ALARM_NAME = 'daily-maintenance';
 const TOKEN_EXPIRY_KEY = 'google_auth_token_expiry';
 const CALENDAR_SYNC_TOKEN_KEY = 'calendar_sync_token';
 
@@ -31,6 +32,12 @@ chrome.runtime.onInstalled.addListener(async () => {
   chrome.alarms.create(ALARM_NAME, {
     periodInMinutes: CHECK_INTERVAL_MINUTES
   });
+
+  // Set up daily maintenance alarm
+  chrome.alarms.create(MAINTENANCE_ALARM_NAME, {
+    delayInMinutes: 60, // Start after 1 hour
+    periodInMinutes: 24 * 60 // Run every 24 hours
+  });
   
   // Try to authenticate if we don't have a valid token
   if (!isTokenValid()) {
@@ -42,7 +49,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-// Listen for alarm to check calendar
+// Listen for alarms
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === ALARM_NAME) {
     // Check if token is valid before checking calendar
@@ -51,6 +58,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       await refreshToken();
     }
     
+    await checkCalendar();
+  } else if (alarm.name === MAINTENANCE_ALARM_NAME) {
+    await performMaintenance();
+  } else if (alarm.name.startsWith('meeting-') || alarm.name.startsWith('early')) {
+    await handleMeetingAlarm(alarm.name);
     await checkCalendar();
   }
 });
@@ -286,6 +298,9 @@ async function checkCalendar() {
     
     // Process events
     processEvents(data.items || []);
+
+    // Check for missed meetings
+    await checkForMissedMeetings();
   } catch (error) {
     console.warn('Calendar check failed:', error);
     
@@ -309,7 +324,7 @@ async function checkCalendar() {
 }
 
 // Process calendar events
-function processEvents(events) {
+async function processEvents(events) {
   // Filter for events with Google Meet links
   const meetEvents = events.filter(event => {
     // Check for hangoutLink property
@@ -382,8 +397,11 @@ function processEvents(events) {
   // Update upcoming meetings list
   upcomingMeetings = meetings;
   
+  // Schedule precise notifications
+  await updateScheduledMeetings(meetings);
+  
   // Check for meetings that should trigger notifications
-  checkForMeetingNotifications();
+  await checkForMeetingNotifications();
 }
 
 // Check if any meetings should trigger notifications
@@ -418,7 +436,8 @@ async function checkForMeetingNotifications() {
     }
     
     // Calculate minutes until meeting starts
-    const minutesUntil = Math.floor((meeting.startTime - now) / (1000 * 60));
+    const meetingStartTime = meeting.startTime instanceof Date ? meeting.startTime : new Date(meeting.startTime);
+    const minutesUntil = Math.floor((meetingStartTime - now) / (1000 * 60));
     
     // Early notification check - 15 minutes
     if (earlySettings.enabled && 
@@ -428,6 +447,7 @@ async function checkForMeetingNotifications() {
       
       showEarlyNotification(meeting, 15, earlySettings.intervals.fifteen.sound);
       earlyNotificationsShown[meeting.id].fifteen = true;
+      await StorageManager.recordNotificationShown(meeting.id, 'early15');
     }
     
     // Early notification check - 10 minutes
@@ -438,6 +458,7 @@ async function checkForMeetingNotifications() {
       
       showEarlyNotification(meeting, 10, earlySettings.intervals.ten.sound);
       earlyNotificationsShown[meeting.id].ten = true;
+      await StorageManager.recordNotificationShown(meeting.id, 'early10');
     }
     
     // Early notification check - 5 minutes
@@ -448,14 +469,17 @@ async function checkForMeetingNotifications() {
       
       showEarlyNotification(meeting, 5, earlySettings.intervals.five.sound);
       earlyNotificationsShown[meeting.id].five = true;
+      await StorageManager.recordNotificationShown(meeting.id, 'early5');
     }
     
     // Calculate time difference in seconds
-    const timeDiff = Math.abs(meeting.startTime - now) / 1000;
+    const startTimeDate = meeting.startTime instanceof Date ? meeting.startTime : new Date(meeting.startTime);
+    const timeDiff = Math.abs(startTimeDate - now) / 1000;
     
     // If meeting is starting now (within 30 seconds) and no notification is active for it
     if (timeDiff <= 30 && !activeNotifications[meeting.id]) {
       showMeetingNotification(meeting);
+      await StorageManager.recordNotificationShown(meeting.id, 'main');
     }
   }
   
@@ -476,6 +500,233 @@ function cleanupNotificationTracking() {
       delete earlyNotificationsShown[meetingId];
     }
   }
+}
+
+/**
+ * Check for missed meetings that should have notifications
+ */
+async function checkForMissedMeetings() {
+  const now = new Date();
+  
+  for (const meeting of upcomingMeetings) {
+    // Skip cancelled meetings
+    if (meeting.status === 'cancelled') {
+      continue;
+    }
+    
+    // Calculate time difference in seconds
+    const meetingStart = new Date(meeting.startTime);
+    const timeDiff = Math.abs(meetingStart - now) / 1000;
+    
+    // If meeting is happening now (within last 30 seconds) and notification not shown
+    if (timeDiff <= 30 && meetingStart <= now) {
+      const hasBeenNotified = await StorageManager.hasNotificationBeenShown(meeting.id, 'main');
+      
+      if (!hasBeenNotified) {
+        // Show notification immediately
+        showMeetingNotification(meeting);
+        await StorageManager.recordNotificationShown(meeting.id, 'main');
+      }
+    }
+  }
+}
+
+/**
+ * Schedule precise alarms for a meeting
+ * @param {Object} meeting - The meeting to schedule alarms for
+ */
+async function scheduleMeetingAlarms(meeting) {
+  // Get early notification settings
+  const earlySettings = await StorageManager.getEarlyNotificationSettings();
+  
+  // Schedule main meeting notification
+  const mainAlarmName = `meeting-${meeting.id}`;
+  const meetingTime = new Date(meeting.startTime).getTime();
+  const now = Date.now();
+  
+  // Only schedule if meeting is in the future
+  if (meetingTime > now) {
+    chrome.alarms.create(mainAlarmName, { when: meetingTime });
+  }
+  
+  // Schedule early notifications based on settings
+  if (earlySettings.enabled) {
+    // 15-minute notification
+    if (earlySettings.intervals.fifteen.enabled) {
+      const early15Time = meetingTime - (15 * 60 * 1000);
+      if (early15Time > now) {
+        chrome.alarms.create(`early15-${meeting.id}`, { when: early15Time });
+      }
+    }
+    
+    // 10-minute notification
+    if (earlySettings.intervals.ten.enabled) {
+      const early10Time = meetingTime - (10 * 60 * 1000);
+      if (early10Time > now) {
+        chrome.alarms.create(`early10-${meeting.id}`, { when: early10Time });
+      }
+    }
+    
+    // 5-minute notification
+    if (earlySettings.intervals.five.enabled) {
+      const early5Time = meetingTime - (5 * 60 * 1000);
+      if (early5Time > now) {
+        chrome.alarms.create(`early5-${meeting.id}`, { when: early5Time });
+      }
+    }
+  }
+}
+
+/**
+ * Cancel all alarms for a meeting
+ * @param {string} meetingId - The ID of the meeting
+ */
+function cancelMeetingAlarms(meetingId) {
+  chrome.alarms.clear(`meeting-${meetingId}`);
+  chrome.alarms.clear(`early15-${meetingId}`);
+  chrome.alarms.clear(`early10-${meetingId}`);
+  chrome.alarms.clear(`early5-${meetingId}`);
+}
+
+/**
+ * Update scheduled meetings
+ * @param {Array} currentMeetings - The current list of meetings
+ */
+async function updateScheduledMeetings(currentMeetings) {
+  // Get currently scheduled meetings
+  const scheduledMeetings = await StorageManager.getScheduledMeetings();
+  
+  for (const meeting of currentMeetings) {
+    // Skip cancelled meetings
+    if (meeting.status === 'cancelled') {
+      continue;
+    }
+    
+    const existingMeeting = scheduledMeetings[meeting.id];
+    
+    if (!existingMeeting) {
+      // New meeting - schedule it
+      scheduledMeetings[meeting.id] = {
+        ...meeting,
+        scheduledAt: Date.now()
+      };
+      await scheduleMeetingAlarms(meeting);
+    } else if (meetingHasChanged(existingMeeting, meeting)) {
+      // Meeting changed - update it
+      cancelMeetingAlarms(meeting.id);
+      scheduledMeetings[meeting.id] = {
+        ...meeting,
+        scheduledAt: Date.now()
+      };
+      await scheduleMeetingAlarms(meeting);
+    }
+  }
+  
+  // Clean up meetings that no longer exist
+  for (const id in scheduledMeetings) {
+    if (!currentMeetings.some(m => m.id === id)) {
+      cancelMeetingAlarms(id);
+      delete scheduledMeetings[id];
+    }
+  }
+  
+  // Save updated scheduled meetings
+  await StorageManager.setScheduledMeetings(scheduledMeetings);
+}
+
+/**
+ * Check if meeting has changed
+ * @param {Object} oldMeeting - The old meeting
+ * @param {Object} newMeeting - The new meeting
+ * @returns {boolean} Whether the meeting has changed
+ */
+function meetingHasChanged(oldMeeting, newMeeting) {
+  return (
+    new Date(oldMeeting.startTime).getTime() !== new Date(newMeeting.startTime).getTime() ||
+    oldMeeting.status !== newMeeting.status
+  );
+}
+
+/**
+ * Handle meeting alarm
+ * @param {string} alarmName - The name of the alarm
+ */
+async function handleMeetingAlarm(alarmName) {
+  const parts = alarmName.split('-');
+  const type = parts[0];
+  const meetingId = parts.slice(1).join('-'); // Rejoin in case meeting ID contains hyphens
+  
+  // Check if notification has already been shown
+  const hasBeenNotified = await StorageManager.hasNotificationBeenShown(meetingId, type);
+  if (hasBeenNotified) {
+    return;
+  }
+  
+  // Get scheduled meetings
+  const scheduledMeetings = await StorageManager.getScheduledMeetings();
+  const meeting = scheduledMeetings[meetingId];
+  
+  // Verify meeting still exists and is not cancelled
+  if (!meeting || meeting.status === 'cancelled') {
+    return;
+  }
+  
+  // Also verify meeting is in upcomingMeetings (double-check it's still valid)
+  const isStillUpcoming = upcomingMeetings.some(m => m.id === meetingId);
+  if (!isStillUpcoming) {
+    return;
+  }
+  
+  // Handle based on notification type
+  if (type === 'meeting') {
+    showMeetingNotification(meeting);
+    await StorageManager.recordNotificationShown(meetingId, 'main');
+  } else if (type === 'early15') {
+    const earlySettings = await StorageManager.getEarlyNotificationSettings();
+    if (earlySettings.enabled && earlySettings.intervals.fifteen.enabled) {
+      showEarlyNotification(meeting, 15, earlySettings.intervals.fifteen.sound);
+      await StorageManager.recordNotificationShown(meetingId, 'early15');
+    }
+  } else if (type === 'early10') {
+    const earlySettings = await StorageManager.getEarlyNotificationSettings();
+    if (earlySettings.enabled && earlySettings.intervals.ten.enabled) {
+      showEarlyNotification(meeting, 10, earlySettings.intervals.ten.sound);
+      await StorageManager.recordNotificationShown(meetingId, 'early10');
+    }
+  } else if (type === 'early5') {
+    const earlySettings = await StorageManager.getEarlyNotificationSettings();
+    if (earlySettings.enabled && earlySettings.intervals.five.enabled) {
+      showEarlyNotification(meeting, 5, earlySettings.intervals.five.sound);
+      await StorageManager.recordNotificationShown(meetingId, 'early5');
+    }
+  }
+}
+
+/**
+ * Perform maintenance tasks
+ */
+async function performMaintenance() {
+  // Clean up notification records
+  await StorageManager.cleanupNotificationRecords();
+  
+  // Clean up scheduled meetings older than 24 hours
+  const scheduledMeetings = await StorageManager.getScheduledMeetings();
+  const now = new Date();
+  let changed = false;
+  
+  for (const [meetingId, meeting] of Object.entries(scheduledMeetings)) {
+    const meetingTime = new Date(meeting.startTime);
+    if ((now - meetingTime) > 24 * 60 * 60 * 1000) {
+      delete scheduledMeetings[meetingId];
+      changed = true;
+    }
+  }
+  
+  if (changed) {
+    await StorageManager.setScheduledMeetings(scheduledMeetings);
+  }
+  
+  console.log('Maintenance completed');
 }
 
 // Show early notification
@@ -512,7 +763,8 @@ async function showEarlyNotification(meeting, minutesBefore, playSound) {
   const notificationUrl = chrome.runtime.getURL('notification/early-notification.html') + 
                          `?id=${encodeURIComponent(meeting.id)}` +
                          `&title=${encodeURIComponent(meeting.title)}` +
-                         `&time=${encodeURIComponent(meeting.startTime.toLocaleTimeString())}` +
+                         `&time=${encodeURIComponent(
+                           (meeting.startTime instanceof Date ? meeting.startTime : new Date(meeting.startTime)).toLocaleTimeString())}` +
                          `&minutes=${encodeURIComponent(minutesBefore)}` +
                          `&link=${encodeURIComponent(meeting.meetLink || '')}` +
                          `&attendees=${encodeURIComponent(meeting.attendees.join(','))}` +
@@ -544,7 +796,8 @@ function showMeetingNotification(meeting) {
   const notificationUrl = chrome.runtime.getURL('notification/notification.html') + 
                          `?id=${encodeURIComponent(meeting.id)}` +
                          `&title=${encodeURIComponent(meeting.title)}` +
-                         `&time=${encodeURIComponent(meeting.startTime.toLocaleTimeString())}` +
+                         `&time=${encodeURIComponent(
+                           (meeting.startTime instanceof Date ? meeting.startTime : new Date(meeting.startTime)).toLocaleTimeString())}` +
                          `&link=${encodeURIComponent(meeting.meetLink || '')}`;
   
   // Get screen dimensions using chrome.system.display API

@@ -19,11 +19,6 @@ const tenMinSoundToggle = document.getElementById('ten-min-sound-toggle');
 const fiveMinSoundToggle = document.getElementById('five-min-sound-toggle');
 
 // Snooze settings elements
-const defaultSnoozeDuration = document.getElementById('default-snooze-duration');
-const customDurationChips = document.getElementById('custom-duration-chips');
-const newDuration = document.getElementById('new-duration');
-const addDurationBtn = document.getElementById('add-duration-btn');
-
 // State
 let selectedRingtone = null;
 let isPlaying = false;
@@ -36,9 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Load early notification settings
   await loadEarlyNotificationSettings();
-  
-  // Load snooze settings
-  await loadSnoozeSettings();
   
   // Set up event listeners
   setupEventListeners();
@@ -112,43 +104,6 @@ function updateEarlyNotificationUIState() {
   const intervalSettings = document.getElementById('interval-settings');
   intervalSettings.style.opacity = earlyNotificationsToggle.checked ? '1' : '0.5';
   intervalSettings.style.pointerEvents = earlyNotificationsToggle.checked ? 'auto' : 'none';
-}
-
-// Load snooze settings
-async function loadSnoozeSettings() {
-  try {
-    const settings = await StorageManager.getSnoozeSettings();
-    
-    // Update UI with settings
-    defaultSnoozeDuration.value = settings.defaultDuration.toString();
-    
-    // Render custom duration chips
-    renderCustomDurationChips(settings.customDurations);
-  } catch (error) {
-    console.error('Error loading snooze settings:', error);
-  }
-}
-
-// Render custom duration chips
-function renderCustomDurationChips(durations) {
-  customDurationChips.innerHTML = '';
-  
-  durations.forEach(duration => {
-    const chip = document.createElement('div');
-    chip.className = 'duration-chip';
-    
-    const text = document.createElement('span');
-    text.textContent = `${duration} min`;
-    
-    const removeBtn = document.createElement('button');
-    removeBtn.innerHTML = '&times;';
-    removeBtn.title = 'Remove';
-    removeBtn.addEventListener('click', () => handleRemoveDuration(duration));
-    
-    chip.appendChild(text);
-    chip.appendChild(removeBtn);
-    customDurationChips.appendChild(chip);
-  });
 }
 
 // Create a ringtone card element
@@ -313,10 +268,6 @@ function setupEventListeners() {
   tenMinSoundToggle.addEventListener('change', saveEarlyNotificationSettings);
   fiveMinSoundToggle.addEventListener('change', saveEarlyNotificationSettings);
   
-  // Snooze settings
-  defaultSnoozeDuration.addEventListener('change', saveSnoozeSettings);
-  addDurationBtn.addEventListener('click', handleAddDuration);
-  
   updateEarlyNotificationUIState();
 }
 
@@ -422,47 +373,6 @@ async function saveEarlyNotificationSettings() {
   }
 }
 
-// Save snooze settings
-async function saveSnoozeSettings() {
-  try {
-    const snoozeSettings = await StorageManager.getSnoozeSettings();
-    
-    snoozeSettings.defaultDuration = parseInt(defaultSnoozeDuration.value, 10);
-    
-    await StorageManager.setSnoozeSettings(snoozeSettings);
-  } catch (error) {
-    console.error('Error saving snooze settings:', error);
-  }
-}
-
-// Handle adding a custom duration
-async function handleAddDuration() {
-  const duration = parseInt(newDuration.value, 10);
-  
-  if (isNaN(duration) || duration < 1) {
-    alert('Please enter a valid number of minutes');
-    return;
-  }
-  
-  await StorageManager.addSnoozeCustomDuration(duration);
-  
-  // Refresh UI
-  const snoozeSettings = await StorageManager.getSnoozeSettings();
-  renderCustomDurationChips(snoozeSettings.customDurations);
-  
-  // Clear input
-  newDuration.value = '';
-}
-
-// Handle removing a custom duration
-async function handleRemoveDuration(duration) {
-  await StorageManager.removeSnoozeCustomDuration(duration);
-  
-  // Refresh UI
-  const snoozeSettings = await StorageManager.getSnoozeSettings();
-  renderCustomDurationChips(snoozeSettings.customDurations);
-}
-
 // Save settings
 async function saveSettings() {
   if (!selectedRingtone) {
@@ -479,9 +389,8 @@ async function saveSettings() {
     const path = selectedRingtone.isCustom ? selectedRingtone.dataUrl : selectedRingtone.path;
     const success = await StorageManager.setSelectedRingtone(path);
     
-    // Also save early notification and snooze settings
+    // Also save early notification settings
     await saveEarlyNotificationSettings();
-    await saveSnoozeSettings();
     
     // Update UI
     

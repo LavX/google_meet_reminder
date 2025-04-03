@@ -46,9 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize WebGL effects
   initWebGL();
   
-  // Load snooze settings and populate preset buttons
-  await loadSnoozeSettings();
-  
   // Play sound if enabled (only once)
   if (shouldPlaySound) {
     await loadAndPlaySound();
