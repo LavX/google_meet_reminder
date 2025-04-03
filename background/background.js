@@ -5,8 +5,10 @@ import '../js/storage-manager.js';
 // Constants
 const CALENDAR_API_ENDPOINT = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 const CHECK_INTERVAL_MINUTES = 1; // Check calendar every minute
-const NOTIFICATION_WIDTH = 800;
-const NOTIFICATION_HEIGHT = 700;
+const MEETING_NOTIFICATION_WIDTH = 800; // Width for call join notification
+const MEETING_NOTIFICATION_HEIGHT = 700; // Height adjusted proportionally to width
+const EARLY_NOTIFICATION_WIDTH = 350; // Width for pre-notify browser window
+const EARLY_NOTIFICATION_HEIGHT = 600;
 const ALARM_NAME = 'calendar-check';
 const TOKEN_STORAGE_KEY = 'google_auth_token';
 const MAINTENANCE_ALARM_NAME = 'daily-maintenance';
@@ -745,8 +747,8 @@ async function showEarlyNotification(meeting, minutesBefore, playSound) {
         if (displays && displays.length > 0) {
           const screenWidth = displays[0].bounds.width;
           const screenHeight = displays[0].bounds.height;
-          left = Math.round((screenWidth - NOTIFICATION_WIDTH) / 2);
-          top = Math.round((screenHeight - NOTIFICATION_HEIGHT) / 2);
+          left = Math.round((screenWidth - EARLY_NOTIFICATION_WIDTH) / 2);
+          top = Math.round((screenHeight - EARLY_NOTIFICATION_HEIGHT) / 2);
         }
       });
     }
@@ -755,8 +757,8 @@ async function showEarlyNotification(meeting, minutesBefore, playSound) {
     // Fallback to FHD display dimensions if API fails
     const screenWidth = 1920;
     const screenHeight = 1080;
-    left = Math.round((screenWidth - NOTIFICATION_WIDTH) / 2);
-    top = Math.round((screenHeight - NOTIFICATION_HEIGHT) / 2);
+    left = Math.round((screenWidth - EARLY_NOTIFICATION_WIDTH) / 2);
+    top = Math.round((screenHeight - EARLY_NOTIFICATION_HEIGHT) / 2);
   }
   
   // Create notification URL
@@ -775,8 +777,8 @@ async function showEarlyNotification(meeting, minutesBefore, playSound) {
   chrome.windows.create({
     url: notificationUrl,
     type: 'popup',
-    width: NOTIFICATION_WIDTH,
-    height: NOTIFICATION_HEIGHT,
+    width: MEETING_NOTIFICATION_WIDTH,
+    height: MEETING_NOTIFICATION_HEIGHT,
     left: left,
     top: top,
     focused: true,
@@ -813,8 +815,8 @@ function showMeetingNotification(meeting) {
           // Use the first display's dimensions
           const screenWidth = displays[0].bounds.width;
           const screenHeight = displays[0].bounds.height;
-          left = Math.round((screenWidth - NOTIFICATION_WIDTH) / 2);
-          top = Math.round((screenHeight - NOTIFICATION_HEIGHT) / 2);
+          left = Math.round((screenWidth - MEETING_NOTIFICATION_WIDTH) / 2);
+          top = Math.round((screenHeight - MEETING_NOTIFICATION_HEIGHT) / 2);
         }
       });
     }
@@ -823,16 +825,16 @@ function showMeetingNotification(meeting) {
     // Fallback to FHD display dimensions if API fails
     const screenWidth = 1920;
     const screenHeight = 1080;
-    left = Math.round((screenWidth - NOTIFICATION_WIDTH) / 2);
-    top = Math.round((screenHeight - NOTIFICATION_HEIGHT) / 2);
+    left = Math.round((screenWidth - MEETING_NOTIFICATION_WIDTH) / 2);
+    top = Math.round((screenHeight - MEETING_NOTIFICATION_HEIGHT) / 2);
   }
   
   // Open notification window
   chrome.windows.create({
     url: notificationUrl,
     type: 'popup',
-    width: NOTIFICATION_WIDTH,
-    height: NOTIFICATION_HEIGHT,
+    width: EARLY_NOTIFICATION_WIDTH,
+    height: EARLY_NOTIFICATION_HEIGHT,
     left: left,
     top: top,
     focused: true,
