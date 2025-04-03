@@ -2,7 +2,8 @@
   "manifest_version": 3,
   "name": "Google Meet Reminder",
   "version": "1.0.0",
-  "description": "Never miss a Google Meet call with early notifications, snooze functionality, and customizable alerts",
+  "description": "Never miss a Google Meet call with notification, early notifications, and customizable alerts",
+  "privacy_policy_url": "https://github.com/LavX/google_meet_notifier/wiki/Privacy-Policy-for-Google-Meet-Reminder-Chrome-Extension",
   "icons": {
     "16": "assets/icons/icon.png",
     "48": "assets/icons/icon.png",
