@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Meet Reminder Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Google Meet Reminder Settings</h1>
+      <p>Customize your notification sounds and preferences</p>
+    </header>
+
+    <main>
+      <section class="section">
+        <h2>Ringtone Selection</h2>
+        <p>Choose a sound to play when a meeting notification appears</p>
+        
+        <div class="ringtone-grid" id="ringtone-grid">
+          <!-- Ringtone cards will be dynamically inserted here -->
+          <div class="loading">Loading available sounds...</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Custom Ringtone</h2>
+        <p>Upload your own sound file (.mp3 or .ogg format, max 2MB)</p>
+        
+        <div class="upload-container">
+          <div class="upload-area" id="upload-area">
+            <div class="upload-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p>Drag and drop a sound file here<br>or</p>
+            <label for="file-upload" class="file-upload-btn">Choose File</label>
+            <input type="file" id="file-upload" accept=".mp3,.ogg" hidden>
+            <p class="file-types">Supported formats: .mp3, .ogg</p>
+          </div>
+          <div class="upload-status" id="upload-status"></div>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="save-btn" class="btn primary">Save Settings</button>
+        <button id="reset-btn" class="btn secondary">Reset to Default</button>
+      </div>
+    </main>
+
+    <footer>
+      <p>Google Meet Reminder Extension</p>
+    </footer>
+  </div>
+
+  <!-- Audio element for previewing sounds -->
+  <audio id="preview-audio" preload="none"></audio>
+
+  <script src="../js/storage-manager.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

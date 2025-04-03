@@ -2,15 +2,32 @@
 
 ## Current Focus
 
-**Last Updated:** April 2, 2025
+**Last Updated:** April 3, 2025
 
 The current focus is on improving the user experience of the Google Meet Reminder extension by addressing specific usability issues:
 
 1. Making the "Join" button open Google Meet in a new window instead of a new tab
 2. Removing the shaking animation from notifications as it was found to be annoying
 3. Redesigning the notification window with a more modern and visually appealing design
+4. Adding customizable ringtone selection with support for custom uploads
 
 ## Recent Changes
+
+### April 3, 2025 - Ringtone Selection Feature
+
+1. **Added Ringtone Selection Feature**
+   - Created a dedicated settings page for ringtone selection
+   - Implemented a grid layout for browsing available ringtones
+   - Added support for custom ringtone uploads (.mp3 and .ogg formats)
+   - Implemented ringtone preview functionality
+   - Added storage system for persisting ringtone preferences
+   - Integrated selected ringtones with the notification system
+   - Removed "Grace UX" prefix from ringtone names for cleaner display
+
+2. **Added Settings Access**
+   - Added a "Ringtone Settings" link to the popup UI
+   - Implemented chrome.runtime.openOptionsPage() for accessing settings
+   - Updated manifest.json to register the options page
 
 ### April 3, 2025 - Enhanced Animations
 
@@ -80,13 +97,20 @@ The current focus is on improving the user experience of the Google Meet Reminde
      - JavaScript functionality: Maintain core functionality while adding new visual effects
      - Testing on different browsers and screen sizes
 
-2. **Testing**
+2. **Ringtone Feature Enhancements**
+   - Add volume control for ringtones
+   - Add more built-in ringtone options
+   - Implement ringtone categorization for easier browsing
+   - Add ability to rename custom ringtones
+
+3. **Testing**
    - Test the modified "Join" button functionality to ensure it correctly opens Google Meet in a new window
    - Verify that notifications no longer shake after 5 seconds
    - Test the new notification design across different browsers and screen sizes
+   - Test ringtone selection and custom uploads across different browsers
    - Ensure that all other functionality continues to work as expected
 
-3. **Potential Future Improvements**
+4. **Potential Future Improvements**
    - Consider adding user preferences to customize notification behavior
    - Explore options for more subtle notification styles
    - Add ability to snooze notifications for a specific time period
@@ -98,6 +122,7 @@ The current focus is on improving the user experience of the Google Meet Reminde
    - Notifications should be noticeable but not distracting
    - Meeting join process should be streamlined and efficient
    - Visual design should be modern and aesthetically pleasing
+   - Audio alerts should be customizable to user preferences
 
 2. **Browser Window Management**
    - Using a new window for meetings helps users separate their meeting context from their browsing context
@@ -109,3 +134,10 @@ The current focus is on improving the user experience of the Google Meet Reminde
    - This provides a balance between drawing attention and not being overly distracting
    - Audio alerts are still used as the primary attention-getting mechanism
    - The new design aims to make notifications more visually appealing while maintaining functionality
+
+4. **Ringtone Management**
+   - Storing custom ringtones as data URLs in chrome.storage.local
+   - Limiting custom uploads to 2MB to manage storage space
+   - Removing "Grace UX" prefix from ringtone names for cleaner display
+   - Implementing a grid layout for ringtone selection to make browsing easier
+   - Adding cleanup mechanism for old custom ringtones to manage storage limits

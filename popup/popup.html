@@ -69,8 +69,21 @@
     .footer {
       font-size: 12px;
       color: #666;
-      margin-top: 15px;
+      margin-top: 10px;
       text-align: center;
+    }
+    
+    .settings-link {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      color: #1a73e8;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    
+    .settings-link:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -86,6 +99,8 @@
   <div id="test-container" style="margin-top: 15px; display: none;">
     <button id="test-button" class="test-button">Test Notification</button>
   </div>
+
+  <a href="#" id="settings-link" class="settings-link">Ringtone Settings</a>
   
   <div class="footer">
     <p>Reminding you of Google Meet calls at the exact meeting time.</p>

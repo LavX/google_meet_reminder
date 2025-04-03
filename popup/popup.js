@@ -6,6 +6,7 @@ const statusMessage = document.getElementById('status-message');
 const authButton = document.getElementById('auth-button');
 const testContainer = document.getElementById('test-container');
 const testButton = document.getElementById('test-button');
+const settingsLink = document.getElementById('settings-link');
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Add event listeners
   authButton.addEventListener('click', handleAuthClick);
   testButton.addEventListener('click', handleTestClick);
+  settingsLink.addEventListener('click', handleSettingsClick);
   
   // Check current status
   await checkStatus();
@@ -136,5 +138,19 @@ async function handleTestClick() {
     console.error('Test notification error:', error);
     testButton.textContent = 'Test failed';
     testButton.disabled = false;
+  }
+}
+
+// Handle settings link click
+function handleSettingsClick(e) {
+  e.preventDefault();
+  
+  // Open options page
+  if (chrome.runtime.openOptionsPage) {
+    // New way to open options pages, if supported (Chrome 42+)
+    chrome.runtime.openOptionsPage();
+  } else {
+    // Fallback for older Chrome versions
+    window.open(chrome.runtime.getURL('options/options.html'));
   }
 }

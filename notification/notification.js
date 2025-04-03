@@ -6,6 +6,7 @@ const meetingTime = document.getElementById('meeting-time');
 const joinButton = document.getElementById('join-button');
 const declineButton = document.getElementById('decline-button');
 const ringtone = document.getElementById('ringtone');
+const ringtoneSource = document.getElementById('ringtone-source');
 const notificationContainer = document.querySelector('.notification-container');
 const auroraContainer = document.getElementById('aurora-container');
 
@@ -37,9 +38,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize WebGL effects
   initWebGL();
   
-  // Start audio playback
-  startRingtone();
+  // Load and start audio playback
+  loadAndStartRingtone();
 });
+
+// Load and start the selected ringtone
+async function loadAndStartRingtone() {
+  try {
+    // Get the selected ringtone from storage
+    const ringtonePath = await StorageManager.getSelectedRingtone();
+    
+    // Update the audio source
+    ringtoneSource.src = ringtonePath;
+    
+    // Load the audio
+    ringtone.load();
+    
+    // Start playing
+    startRingtone();
+  } catch (error) {
+    console.error('Error loading ringtone:', error);
+    // Fallback to default ringtone
+    ringtoneSource.src = '../assets/sounds/ringtone.mp3';
+    ringtone.load();
+    startRingtone();
+  }
+}
 
 // Initialize WebGL effects
 function initWebGL() {
@@ -132,7 +156,7 @@ function createShaderProgram(gl, vertexSource, fragmentSource) {
 function startRingtone() {
   // Try to play the ringtone
   try {
-    // Set volume to 80%
+    // Set volume to 100%
     ringtone.volume = 1.0;
     
     // Play the ringtone

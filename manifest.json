@@ -16,6 +16,7 @@
       "128": "assets/icons/icon.png"
     }
   },
+  "options_page": "options/options.html",
   "background": {
     "service_worker": "background/background.js",
     "type": "module"
@@ -41,7 +42,23 @@
     {
       "resources": [
         "notification/notification.html",
-        "assets/sounds/ringtone.mp3"
+        "assets/sounds/ringtone.mp3",
+        "assets/sounds/skype_ringtone.mp3",
+        "assets/sounds/(Grace UX) Basic_Bell.ogg",
+        "assets/sounds/(Grace UX) Basic_Tone.ogg",
+        "assets/sounds/(Grace UX) Bright_Morning.ogg",
+        "assets/sounds/(Grace UX) Bunny_Hopping.ogg",
+        "assets/sounds/(Grace UX) Chimes.ogg",
+        "assets/sounds/(Grace UX) Daylight.ogg",
+        "assets/sounds/(Grace UX) Field_Trip.ogg",
+        "assets/sounds/(Grace UX) Fresh_Morning.ogg",
+        "assets/sounds/(Grace UX) Gumdrop.ogg",
+        "assets/sounds/(Grace UX) Instant_Calm.ogg",
+        "assets/sounds/(Grace UX) Paper_Guitar.ogg",
+        "assets/sounds/(Grace UX) Percussion.ogg",
+        "assets/sounds/(Grace UX) Scampering_Tone.ogg",
+        "assets/sounds/(Grace UX) Soft_Chimes.ogg",
+        "assets/sounds/(Grace UX) Spacecraft.ogg"
       ],
       "matches": ["<all_urls>"]
     }
