@@ -64,6 +64,7 @@ The following components still need to be implemented or tested:
   - ✅ Orb-based join button
   - ✅ Red reject button
   - ✅ Meeting data displayed above the orb
+  - ✅ Enhanced aurora animation with fluid motion
 - ✅ Add test notification feature in settings
 - ✅ Fix window positioning in background script
 

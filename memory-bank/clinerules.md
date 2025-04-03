@@ -35,6 +35,8 @@
    - Audio playback in background contexts
    - Background scripts cannot access window.screen properties
    - Not all chrome.windows.create() options are supported (e.g., titlePreface, setSelfAsOpener)
+   - WebGL implementation requires careful resource management
+   - Complex animations need dedicated classes for better organization
 
 2. **Google Calendar Integration**
    - OAuth2 authentication complexity
@@ -69,7 +71,8 @@
 
 1. **Notification Window Design**
    - Initial design: Simple white background with blue header
-   - Evolution: Modern black background with aurora effect and orb-based join button
+   - Evolution 1: Modern black background with aurora effect and orb-based join button
+   - Evolution 2: Enhanced aurora animation with fluid motion and customizable parameters
    - Reason: Improved visual appeal and user experience
 
 2. **Window Positioning Strategy**

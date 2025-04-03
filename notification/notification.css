@@ -20,6 +20,17 @@ body {
   padding: 0;
   /* Hide title bar if possible */
   -webkit-app-region: drag;
+  position: relative;
+}
+
+.aurora-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
 }
 
 /* Aurora background */

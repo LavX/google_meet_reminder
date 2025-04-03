@@ -61,9 +61,10 @@ Replace the current notification.html structure with a new layout featuring:
 
 #### 2.1 Aurora Background
 - Adapt the WebGL shader code from the provided React example
-- Create a canvas element for the aurora effect
-- Set up WebGL context and shader program
-- Implement necessary utility functions and animation loop
+- Create a dedicated Aurora class for improved animation
+- Implement customizable color stops (purple, pink, red gradient)
+- Add configurable animation parameters (blend, amplitude, speed)
+- Create fluid motion with improved WebGL shaders
 
 #### 2.2 Orb Implementation
 - Adapt the WebGL shader code for the orb
@@ -113,7 +114,8 @@ Solutions:
 ### Challenge 2: WebGL Adaptation
 Converting the React components to vanilla JavaScript will require:
 - Extracting the shader code
-- Creating utility functions to replace the React hooks and OGL library functions
+- Creating a dedicated Aurora class to encapsulate the animation logic
+- Implementing customizable parameters for the aurora effect
 - Setting up WebGL contexts and animation loops manually
 
 ### Challenge 2: Event Handling

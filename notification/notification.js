@@ -7,15 +7,16 @@ const joinButton = document.getElementById('join-button');
 const declineButton = document.getElementById('decline-button');
 const ringtone = document.getElementById('ringtone');
 const notificationContainer = document.querySelector('.notification-container');
-const auroraCanvas = document.getElementById('aurora-background');
+const auroraContainer = document.getElementById('aurora-container');
 const orbCanvas = document.getElementById('orb-canvas');
 
 // WebGL contexts
-let auroraGL = null;
 let orbGL = null;
 
+// Aurora instance
+let aurora = null;
+
 // Animation frames
-let auroraAnimationFrame = null;
 let orbAnimationFrame = null;
 
 // Meeting data
@@ -67,122 +68,12 @@ function initWebGL() {
 
 // Initialize Aurora background effect
 function initAuroraEffect() {
-  // Set canvas size to match window
-  auroraCanvas.width = window.innerWidth;
-  auroraCanvas.height = window.innerHeight;
-  
-  // Get WebGL context
-  auroraGL = auroraCanvas.getContext('webgl') || auroraCanvas.getContext('experimental-webgl');
-  
-  if (!auroraGL) {
-    throw new Error('Could not initialize WebGL for aurora effect');
-  }
-  
-  // Aurora shader program
-  const auroraVertexShader = `
-    attribute vec2 position;
-    void main() {
-      gl_Position = vec4(position, 0.0, 1.0);
-    }
-  `;
-  
-  const auroraFragmentShader = `
-    precision mediump float;
-    uniform float time;
-    uniform vec2 resolution;
-    
-    vec3 aurora(vec2 uv, float time) {
-      float speed = 0.01;
-      float intensity = 0.75;
-      
-      // Create base gradient
-      vec3 color = vec3(0.0, 0.0, 0.1);
-      
-      // Add aurora waves
-      for (int i = 0; i < 5; i++) {
-        float t = time * speed + float(i) * 0.5;
-        float y = uv.y + sin(uv.x * 2.0 + t) * 0.2;
-        float wave = smoothstep(0.5, 0.8, y);
-        
-        // Aurora colors
-        vec3 aurora1 = vec3(0.0, 0.5, 1.0); // Blue
-        vec3 aurora2 = vec3(0.0, 1.0, 0.5); // Green
-        vec3 aurora3 = vec3(0.5, 0.0, 1.0); // Purple
-        
-        // Mix colors based on position and time
-        vec3 auroraColor = mix(aurora1, aurora2, sin(t * 0.5) * 0.5 + 0.5);
-        auroraColor = mix(auroraColor, aurora3, sin(t * 0.3) * 0.5 + 0.5);
-        
-        // Add to base color
-        color += auroraColor * wave * intensity / float(i + 1);
-      }
-      
-      return color;
-    }
-    
-    void main() {
-      vec2 uv = gl_FragCoord.xy / resolution.xy;
-      uv = uv * 2.0 - 1.0;
-      uv.x *= resolution.x / resolution.y;
-      
-      vec3 color = aurora(uv, time);
-      
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `;
-  
-  // Create shader program
-  const auroraProgram = createShaderProgram(auroraGL, auroraVertexShader, auroraFragmentShader);
-  auroraGL.useProgram(auroraProgram);
-  
-  // Set up geometry (full screen quad)
-  const positions = new Float32Array([
-    -1.0, -1.0,
-     1.0, -1.0,
-    -1.0,  1.0,
-     1.0,  1.0
-  ]);
-  
-  const positionBuffer = auroraGL.createBuffer();
-  auroraGL.bindBuffer(auroraGL.ARRAY_BUFFER, positionBuffer);
-  auroraGL.bufferData(auroraGL.ARRAY_BUFFER, positions, auroraGL.STATIC_DRAW);
-  
-  // Set up attributes and uniforms
-  const positionLocation = auroraGL.getAttribLocation(auroraProgram, 'position');
-  auroraGL.enableVertexAttribArray(positionLocation);
-  auroraGL.vertexAttribPointer(positionLocation, 2, auroraGL.FLOAT, false, 0, 0);
-  
-  const timeLocation = auroraGL.getUniformLocation(auroraProgram, 'time');
-  const resolutionLocation = auroraGL.getUniformLocation(auroraProgram, 'resolution');
-  
-  // Set resolution
-  auroraGL.uniform2f(resolutionLocation, auroraCanvas.width, auroraCanvas.height);
-  
-  // Animation loop
-  let startTime = Date.now();
-  function animateAurora() {
-    // Calculate time
-    const time = (Date.now() - startTime) / 1000;
-    
-    // Update time uniform
-    auroraGL.uniform1f(timeLocation, time);
-    
-    // Draw
-    auroraGL.drawArrays(auroraGL.TRIANGLE_STRIP, 0, 4);
-    
-    // Request next frame
-    auroraAnimationFrame = requestAnimationFrame(animateAurora);
-  }
-  
-  // Start animation
-  animateAurora();
-  
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    auroraCanvas.width = window.innerWidth;
-    auroraCanvas.height = window.innerHeight;
-    auroraGL.viewport(0, 0, auroraCanvas.width, auroraCanvas.height);
-    auroraGL.uniform2f(resolutionLocation, auroraCanvas.width, auroraCanvas.height);
+  // Create new Aurora instance
+  aurora = new Aurora(auroraContainer, {
+    colorStops: ["#3A29FF", "#FF94B4", "#FF3232"],
+    blend: 0.5,
+    amplitude: 1.0,
+    speed: 0.5
   });
 }
 
@@ -428,20 +319,16 @@ function stopRingtone() {
 // Clean up resources
 function cleanupWebGL() {
   // Cancel animation frames
-  if (auroraAnimationFrame) {
-    cancelAnimationFrame(auroraAnimationFrame);
-  }
-  
   if (orbAnimationFrame) {
     cancelAnimationFrame(orbAnimationFrame);
   }
   
-  // Release WebGL resources
-  if (auroraGL) {
-    const loseContext = auroraGL.getExtension('WEBGL_lose_context');
-    if (loseContext) loseContext.loseContext();
+  // Destroy Aurora instance
+  if (aurora) {
+    aurora.destroy();
   }
   
+  // Release WebGL resources
   if (orbGL) {
     const loseContext = orbGL.getExtension('WEBGL_lose_context');
     if (loseContext) loseContext.loseContext();
