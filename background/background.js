@@ -1,10 +1,12 @@
 // Google Meet Reminder - Background Service Worker
 
+import '../js/storage-manager.js';
+
 // Constants
 const CALENDAR_API_ENDPOINT = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 const CHECK_INTERVAL_MINUTES = 1; // Check calendar every minute
-const NOTIFICATION_WIDTH = 660;
-const NOTIFICATION_HEIGHT = 550;
+const NOTIFICATION_WIDTH = 800;
+const NOTIFICATION_HEIGHT = 700;
 const ALARM_NAME = 'calendar-check';
 const TOKEN_STORAGE_KEY = 'google_auth_token';
 const TOKEN_EXPIRY_KEY = 'google_auth_token_expiry';
@@ -15,6 +17,7 @@ let authToken = null;
 let tokenExpiry = null;
 let upcomingMeetings = [];
 let activeNotifications = {};
+let earlyNotificationsShown = {}; // Track which early notifications have been shown
 let calendarSyncToken = null;
 
 // Initialize extension
@@ -68,6 +71,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       });
     return true; // Indicates async response
+  } else if (message.action === 'triggerTestEarlyNotification') {
+    createTestEarlyNotification()
+      .then(() => sendResponse({ success: true }))
+      .catch(error => {
+        console.error('Error creating test notification:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true; // Indicates async response
   } else if (message.action === 'authenticate') {
     authenticate().then(success => {
       sendResponse({ success });
@@ -79,6 +90,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === 'declineMeeting') {
     closeNotification(message.meetingId);
     sendResponse({ success: true });
+  } else if (message.action === 'snoozeMeeting') {
+    StorageManager.snoozeMeeting(message.meetingId, message.duration)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => {
+        console.error('Error snoozing meeting:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true; // Indicates async response
+  } else if (message.action === 'getSnoozeSettings') {
+    StorageManager.getSnoozeSettings()
+      .then(settings => sendResponse({ success: true, settings }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Indicates async response
   } else if (message.action === 'clearAuth') {
     clearAuthState().then(() => {
       sendResponse({ success: true });
@@ -227,9 +251,9 @@ async function checkCalendar() {
     // Get current time
     const now = new Date();
     
-    // Set timeMin to now and timeMax to 10 minutes from now
+    // Set timeMin to now and timeMax to 16 minutes from now (to capture 15-minute early notifications)
     const timeMin = now.toISOString();
-    const timeMax = new Date(now.getTime() + 10 * 60000).toISOString();
+    const timeMax = new Date(now.getTime() + 16 * 60000).toISOString();
     
     // Build request URL
     let requestUrl = `${CALENDAR_API_ENDPOINT}?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=10`;
@@ -263,7 +287,7 @@ async function checkCalendar() {
     // Process events
     processEvents(data.items || []);
   } catch (error) {
-    console.error('Calendar check failed:', error);
+    console.warn('Calendar check failed:', error);
     
     // Handle specific error cases
     if (error.message.includes('401')) {
@@ -277,6 +301,9 @@ async function checkCalendar() {
       calendarSyncToken = null;
       await saveAuthState();
       await checkCalendar();
+    } else {
+      // For other errors, just log and continue
+      console.warn('Continuing despite calendar error');
     }
   }
 }
@@ -345,6 +372,7 @@ function processEvents(events) {
       title: event.summary || 'Untitled Meeting',
       startTime: new Date(event.start.dateTime || event.start.date),
       endTime: new Date(event.end.dateTime || event.end.date),
+      description: event.description || 'No agenda available', // Extract description for agenda
       meetLink: meetLink,
       attendees: (event.attendees || []).map(a => a.email),
       status: event.status
@@ -359,17 +387,148 @@ function processEvents(events) {
 }
 
 // Check if any meetings should trigger notifications
-function checkForMeetingNotifications() {
+async function checkForMeetingNotifications() {
   const now = new Date();
   
-  upcomingMeetings.forEach(meeting => {
+  // Clean up expired snoozes
+  await StorageManager.cleanupExpiredSnoozes();
+  
+  // Get early notification settings
+  const earlySettings = await StorageManager.getEarlyNotificationSettings();
+  
+  for (const meeting of upcomingMeetings) {
+    // Skip cancelled meetings
+    if (meeting.status === 'cancelled') {
+      continue;
+    }
+    
+    // Check if meeting is snoozed
+    const isSnoozed = await StorageManager.isMeetingSnoozed(meeting.id);
+    if (isSnoozed) {
+      continue; // Skip snoozed meetings
+    }
+    
+    // Initialize tracking for this meeting if not exists
+    if (!earlyNotificationsShown[meeting.id]) {
+      earlyNotificationsShown[meeting.id] = {
+        fifteen: false,
+        ten: false,
+        five: false
+      };
+    }
+    
+    // Calculate minutes until meeting starts
+    const minutesUntil = Math.floor((meeting.startTime - now) / (1000 * 60));
+    
+    // Early notification check - 15 minutes
+    if (earlySettings.enabled && 
+        earlySettings.intervals.fifteen.enabled && 
+        minutesUntil <= 15 && minutesUntil > 14 && 
+        !earlyNotificationsShown[meeting.id].fifteen) {
+      
+      showEarlyNotification(meeting, 15, earlySettings.intervals.fifteen.sound);
+      earlyNotificationsShown[meeting.id].fifteen = true;
+    }
+    
+    // Early notification check - 10 minutes
+    if (earlySettings.enabled && 
+        earlySettings.intervals.ten.enabled && 
+        minutesUntil <= 10 && minutesUntil > 9 && 
+        !earlyNotificationsShown[meeting.id].ten) {
+      
+      showEarlyNotification(meeting, 10, earlySettings.intervals.ten.sound);
+      earlyNotificationsShown[meeting.id].ten = true;
+    }
+    
+    // Early notification check - 5 minutes
+    if (earlySettings.enabled && 
+        earlySettings.intervals.five.enabled && 
+        minutesUntil <= 5 && minutesUntil > 4 && 
+        !earlyNotificationsShown[meeting.id].five) {
+      
+      showEarlyNotification(meeting, 5, earlySettings.intervals.five.sound);
+      earlyNotificationsShown[meeting.id].five = true;
+    }
+    
     // Calculate time difference in seconds
     const timeDiff = Math.abs(meeting.startTime - now) / 1000;
     
     // If meeting is starting now (within 30 seconds) and no notification is active for it
-    if (timeDiff <= 30 && !activeNotifications[meeting.id] && meeting.status !== 'cancelled') {
+    if (timeDiff <= 30 && !activeNotifications[meeting.id]) {
       showMeetingNotification(meeting);
     }
+  }
+  
+  // Clean up tracking for past meetings
+  cleanupNotificationTracking();
+}
+
+// Clean up notification tracking
+function cleanupNotificationTracking() {
+  const now = new Date();
+  
+  for (const meetingId of Object.keys(earlyNotificationsShown)) {
+    // Check if meeting is still in upcoming meetings
+    const meetingExists = upcomingMeetings.some(m => m.id === meetingId);
+    
+    // If meeting no longer exists or has started, remove from tracking
+    if (!meetingExists || upcomingMeetings.find(m => m.id === meetingId)?.startTime <= now) {
+      delete earlyNotificationsShown[meetingId];
+    }
+  }
+}
+
+// Show early notification
+async function showEarlyNotification(meeting, minutesBefore, playSound) {
+  // Create a unique window ID for this notification
+  const notificationId = `early-${meeting.id}-${minutesBefore}`;
+  
+  // Calculate window position (similar to showMeetingNotification)
+  let left = 560;
+  let top = 340;
+  
+  try {
+    // Get screen dimensions using chrome.system.display API
+    if (chrome.system && chrome.system.display) {
+      chrome.system.display.getInfo(function(displays) {
+        if (displays && displays.length > 0) {
+          const screenWidth = displays[0].bounds.width;
+          const screenHeight = displays[0].bounds.height;
+          left = Math.round((screenWidth - NOTIFICATION_WIDTH) / 2);
+          top = Math.round((screenHeight - NOTIFICATION_HEIGHT) / 2);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error getting display info:', error);
+    // Fallback to FHD display dimensions if API fails
+    const screenWidth = 1920;
+    const screenHeight = 1080;
+    left = Math.round((screenWidth - NOTIFICATION_WIDTH) / 2);
+    top = Math.round((screenHeight - NOTIFICATION_HEIGHT) / 2);
+  }
+  
+  // Create notification URL
+  const notificationUrl = chrome.runtime.getURL('notification/early-notification.html') + 
+                         `?id=${encodeURIComponent(meeting.id)}` +
+                         `&title=${encodeURIComponent(meeting.title)}` +
+                         `&time=${encodeURIComponent(meeting.startTime.toLocaleTimeString())}` +
+                         `&minutes=${encodeURIComponent(minutesBefore)}` +
+                         `&link=${encodeURIComponent(meeting.meetLink || '')}` +
+                         `&attendees=${encodeURIComponent(meeting.attendees.join(','))}` +
+                         `&description=${encodeURIComponent(meeting.description)}` +
+                         `&playSound=${encodeURIComponent(playSound)}`;
+  
+  // Open notification window
+  chrome.windows.create({
+    url: notificationUrl,
+    type: 'popup',
+    width: NOTIFICATION_WIDTH,
+    height: NOTIFICATION_HEIGHT,
+    left: left,
+    top: top,
+    focused: true,
+    state: 'normal'
   });
 }
 
@@ -383,10 +542,10 @@ function showMeetingNotification(meeting) {
   
   // Create notification URL
   const notificationUrl = chrome.runtime.getURL('notification/notification.html') + 
-                          `?id=${encodeURIComponent(meeting.id)}` +
-                          `&title=${encodeURIComponent(meeting.title)}` +
-                          `&time=${encodeURIComponent(meeting.startTime.toLocaleTimeString())}` +
-                          `&link=${encodeURIComponent(meeting.meetLink || '')}`;
+                         `?id=${encodeURIComponent(meeting.id)}` +
+                         `&title=${encodeURIComponent(meeting.title)}` +
+                         `&time=${encodeURIComponent(meeting.startTime.toLocaleTimeString())}` +
+                         `&link=${encodeURIComponent(meeting.meetLink || '')}`;
   
   // Get screen dimensions using chrome.system.display API
   // We need to declare this permission in the manifest.json file
@@ -476,6 +635,31 @@ async function createTestNotification() {
   
   // Show notification for the test meeting
   showMeetingNotification(testMeeting);
+  
+  return true;
+}
+// Create a test early notification
+async function createTestEarlyNotification() {
+  // Create a test meeting object
+  const testMeeting = {
+    id: 'test-early-' + Date.now(), // Generate a unique ID using timestamp
+    title: 'Test Early Notification',
+    startTime: new Date(Date.now() + 10 * 60000), // 10 minutes from now
+    endTime: new Date(Date.now() + 40 * 60000), // 40 minutes from now
+    meetLink: 'https://meet.google.com/test-meeting-id',
+    attendees: ['John Doe', 'Jane Smith', 'Alex Johnson', 'Maria Garcia', 'Wei Chen'],
+    description: 'This is a test early notification with a sample agenda.:\n1. Introduction\n2. Project updates\n3. Discussion topics\n4. Action items',
+    status: 'confirmed'
+  };
+  
+  // Get early notification settings
+  const earlySettings = await StorageManager.getEarlyNotificationSettings();
+  
+  // Default to playing sound for the test
+  const playSound = true;
+  
+  // Show early notification for the test meeting (10 minutes before)
+  showEarlyNotification(testMeeting, 10, playSound);
   
   return true;
 }

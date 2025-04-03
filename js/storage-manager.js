@@ -9,6 +9,10 @@ class StorageManager {
   static CUSTOM_RINGTONES_KEY = 'custom_ringtones';
   static DEFAULT_RINGTONE = '../assets/sounds/ringtone.mp3';
   
+  // New storage keys for early notification and snooze features
+  static EARLY_NOTIFICATION_SETTINGS_KEY = 'early_notification_settings';
+  static SNOOZE_SETTINGS_KEY = 'snooze_settings';
+  
   // Maximum file size for uploads (2MB)
   static MAX_FILE_SIZE = 2 * 1024 * 1024;
   
@@ -252,7 +256,230 @@ class StorageManager {
       return false;
     }
   }
+  
+  /**
+   * Default early notification settings
+   */
+  static DEFAULT_EARLY_NOTIFICATION_SETTINGS = {
+    enabled: true,
+    intervals: {
+      fifteen: { enabled: true, sound: true },
+      ten: { enabled: true, sound: true },
+      five: { enabled: true, sound: true }
+    }
+  };
+
+  /**
+   * Default snooze settings
+   */
+  static DEFAULT_SNOOZE_SETTINGS = {
+    defaultDuration: 5, // minutes
+    customDurations: [1, 3, 5, 10], // Default preset durations
+    snoozedMeetings: {} // format: { meetingId: snoozeEndTime }
+  };
+
+  /**
+   * Get early notification settings
+   * @returns {Promise<Object>} The early notification settings
+   */
+  static async getEarlyNotificationSettings() {
+    try {
+      const data = await chrome.storage.local.get([this.EARLY_NOTIFICATION_SETTINGS_KEY]);
+      return data[this.EARLY_NOTIFICATION_SETTINGS_KEY] || this.DEFAULT_EARLY_NOTIFICATION_SETTINGS;
+    } catch (error) {
+      console.error('Error getting early notification settings:', error);
+      return this.DEFAULT_EARLY_NOTIFICATION_SETTINGS;
+    }
+  }
+
+  /**
+   * Set early notification settings
+   * @param {Object} settings - The early notification settings to save
+   * @returns {Promise<boolean>} Success status
+   */
+  static async setEarlyNotificationSettings(settings) {
+    try {
+      await chrome.storage.local.set({
+        [this.EARLY_NOTIFICATION_SETTINGS_KEY]: settings
+      });
+      return true;
+    } catch (error) {
+      console.error('Error setting early notification settings:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get snooze settings
+   * @returns {Promise<Object>} The snooze settings
+   */
+  static async getSnoozeSettings() {
+    try {
+      const data = await chrome.storage.local.get([this.SNOOZE_SETTINGS_KEY]);
+      return data[this.SNOOZE_SETTINGS_KEY] || this.DEFAULT_SNOOZE_SETTINGS;
+    } catch (error) {
+      console.error('Error getting snooze settings:', error);
+      return this.DEFAULT_SNOOZE_SETTINGS;
+    }
+  }
+
+  /**
+   * Set snooze settings
+   * @param {Object} settings - The snooze settings to save
+   * @returns {Promise<boolean>} Success status
+   */
+  static async setSnoozeSettings(settings) {
+    try {
+      await chrome.storage.local.set({
+        [this.SNOOZE_SETTINGS_KEY]: settings
+      });
+      return true;
+    } catch (error) {
+      console.error('Error setting snooze settings:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Add a custom snooze duration
+   * @param {number} minutes - The duration in minutes to add
+   * @returns {Promise<boolean>} Success status
+   */
+  static async addSnoozeCustomDuration(minutes) {
+    try {
+      const settings = await this.getSnoozeSettings();
+      
+      if (!settings.customDurations.includes(minutes)) {
+        settings.customDurations.push(minutes);
+        // Sort durations in ascending order
+        settings.customDurations.sort((a, b) => a - b);
+        await this.setSnoozeSettings(settings);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding custom snooze duration:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Remove a custom snooze duration
+   * @param {number} minutes - The duration in minutes to remove
+   * @returns {Promise<boolean>} Success status
+   */
+  static async removeSnoozeCustomDuration(minutes) {
+    try {
+      const settings = await this.getSnoozeSettings();
+      
+      settings.customDurations = settings.customDurations.filter(d => d !== minutes);
+      
+      await this.setSnoozeSettings(settings);
+      return true;
+    } catch (error) {
+      console.error('Error removing custom snooze duration:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Snooze a meeting
+   * @param {string} meetingId - The ID of the meeting to snooze
+   * @param {number} durationMinutes - The snooze duration in minutes
+   * @returns {Promise<boolean>} Success status
+   */
+  static async snoozeMeeting(meetingId, durationMinutes) {
+    try {
+      const snoozeSettings = await this.getSnoozeSettings();
+      const now = Date.now();
+      const snoozeEndTime = now + (durationMinutes * 60 * 1000);
+      
+      snoozeSettings.snoozedMeetings[meetingId] = snoozeEndTime;
+      
+      await this.setSnoozeSettings(snoozeSettings);
+      return true;
+    } catch (error) {
+      console.error('Error snoozing meeting:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a meeting is snoozed
+   * @param {string} meetingId - The ID of the meeting to check
+   * @returns {Promise<boolean>} Whether the meeting is snoozed
+   */
+  static async isMeetingSnoozed(meetingId) {
+    try {
+      const snoozeSettings = await this.getSnoozeSettings();
+      const snoozeEndTime = snoozeSettings.snoozedMeetings[meetingId];
+      
+      if (!snoozeEndTime) {
+        return false;
+      }
+      
+      const now = Date.now();
+      return snoozeEndTime > now;
+    } catch (error) {
+      console.error('Error checking snooze status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Remove snooze for a meeting
+   * @param {string} meetingId - The ID of the meeting to unsnooze
+   * @returns {Promise<boolean>} Success status
+   */
+  static async removeSnooze(meetingId) {
+    try {
+      const snoozeSettings = await this.getSnoozeSettings();
+      
+      delete snoozeSettings.snoozedMeetings[meetingId];
+      
+      await this.setSnoozeSettings(snoozeSettings);
+      return true;
+    } catch (error) {
+      console.error('Error removing snooze:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clean up expired snoozes
+   * @returns {Promise<boolean>} Success status
+   */
+  static async cleanupExpiredSnoozes() {
+    try {
+      const snoozeSettings = await this.getSnoozeSettings();
+      const now = Date.now();
+      let changed = false;
+      
+      for (const [meetingId, endTime] of Object.entries(snoozeSettings.snoozedMeetings)) {
+        if (endTime < now) {
+          delete snoozeSettings.snoozedMeetings[meetingId];
+          changed = true;
+        }
+      }
+      
+      if (changed) {
+        await this.setSnoozeSettings(snoozeSettings);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error cleaning up snoozes:', error);
+      return false;
+    }
+  }
 }
 
 // Export the StorageManager class
-window.StorageManager = StorageManager;
+// Handle both browser and service worker contexts
+if (typeof window !== 'undefined') {
+  // Browser context
+  window.StorageManager = StorageManager;
+} else {
+  // Service worker context
+  self.StorageManager = StorageManager;
+}

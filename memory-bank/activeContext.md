@@ -10,8 +10,24 @@ The current focus is on improving the user experience of the Google Meet Reminde
 2. Removing the shaking animation from notifications as it was found to be annoying
 3. Redesigning the notification window with a more modern and visually appealing design
 4. Adding customizable ringtone selection with support for custom uploads
+5. Implementing early meeting notifications (5/10/15 minutes before)
+6. Adding snooze functionality with customizable durations
 
 ## Recent Changes
+
+### April 3, 2025 - Early Notification & Snooze Features
+
+1. **Added Early Notification System**
+   - Implemented notifications at 5, 10, and 15 minutes before meetings
+   - Created UI with time remaining badge and meeting agenda display
+   - Added settings to enable/disable each notification interval
+   - Integrated with existing notification system
+
+2. **Added Snooze Functionality**
+   - Implemented snooze system with customizable durations
+   - Added UI for managing snooze settings in options page
+   - Created storage system for tracking snoozed meetings
+   - Added cleanup mechanism for expired snoozes
 
 ### April 3, 2025 - Ringtone Selection Feature
 
@@ -85,35 +101,21 @@ The current focus is on improving the user experience of the Google Meet Reminde
 
 ## Next Steps
 
-1. **Notification Window Redesign**
-   - Implement a complete redesign of the notification window with:
-     - Black background with aurora effect (similar to https://www.reactbits.dev/backgrounds/aurora)
-     - Meeting data (title and time) displayed above an orb
-     - Orb element (similar to https://www.reactbits.dev/backgrounds/orb) as the main join button
-     - A red reject button below the orb
-   - Implementation plan includes:
-     - Structure changes: New HTML layout, rebuilt CSS
-     - WebGL implementation: Aurora background and orb elements
-     - JavaScript functionality: Maintain core functionality while adding new visual effects
-     - Testing on different browsers and screen sizes
-
-2. **Ringtone Feature Enhancements**
+1. **Ringtone Feature Enhancements**
    - Add volume control for ringtones
    - Add more built-in ringtone options
    - Implement ringtone categorization for easier browsing
    - Add ability to rename custom ringtones
 
-3. **Testing**
-   - Test the modified "Join" button functionality to ensure it correctly opens Google Meet in a new window
-   - Verify that notifications no longer shake after 5 seconds
-   - Test the new notification design across different browsers and screen sizes
-   - Test ringtone selection and custom uploads across different browsers
-   - Ensure that all other functionality continues to work as expected
+2. **Testing**
+   - Test all features across different browsers and screen sizes
+   - Test early notifications at different time intervals
+   - Verify snooze functionality works correctly with different durations
+   - Ensure that all functionality continues to work as expected
 
-4. **Potential Future Improvements**
-   - Consider adding user preferences to customize notification behavior
-   - Explore options for more subtle notification styles
-   - Add ability to snooze notifications for a specific time period
+3. **Potential Future Improvements**
+   - Consider adding more customization options for notification behavior
+   - Explore options for calendar integration improvements
 
 ## Active Decisions and Considerations
 
@@ -141,3 +143,9 @@ The current focus is on improving the user experience of the Google Meet Reminde
    - Removing "Grace UX" prefix from ringtone names for cleaner display
    - Implementing a grid layout for ringtone selection to make browsing easier
    - Adding cleanup mechanism for old custom ringtones to manage storage limits
+
+5. **Snooze and Early Notification Management**
+   - Storing snooze preferences and early notification settings in chrome.storage.local
+   - Implementing a tracking system to prevent duplicate early notifications
+   - Using customizable durations for snooze functionality to improve user experience
+   - Adding meeting agenda display to early notifications for better context

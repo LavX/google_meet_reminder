@@ -37,6 +37,8 @@
    - Not all chrome.windows.create() options are supported (e.g., titlePreface, setSelfAsOpener)
    - WebGL implementation requires careful resource management
    - Complex animations need dedicated classes for better organization
+   - Module-based service workers require explicit imports for dependencies
+   - Service workers don't have access to the window object, requiring environment detection
 
 2. **Google Calendar Integration**
    - OAuth2 authentication complexity
@@ -90,3 +92,21 @@
    - Initial approach: No test option
    - Evolution: Added test notification button in settings
    - Reason: Easier testing and debugging of notification appearance
+
+5. **Module-Based Service Worker**
+   - Initial approach: Using global StorageManager without explicit import
+   - Evolution: Added explicit import for StorageManager in background.js
+   - Reason: Service workers with type "module" in manifest.json require explicit imports
+   - Pattern: Always import dependencies explicitly in module-based service workers
+
+6. **Service Worker Environment Detection**
+   - Initial approach: Using window.StorageManager for exporting the class
+   - Evolution: Added environment detection to handle both browser and service worker contexts
+   - Reason: Service workers don't have access to the window object
+   - Pattern: Use typeof checks to detect environment and use appropriate global object (window vs self)
+
+7. **Early Notification and Snooze Features**
+   - Initial approach: Only notify at exact meeting time
+   - Evolution: Added early notifications (5/10/15 minutes before) and snooze functionality
+   - Reason: Provide users with more flexibility and preparation time
+   - Pattern: Store user preferences in chrome.storage.local for persistence

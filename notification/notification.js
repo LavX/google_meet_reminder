@@ -100,7 +100,7 @@ function initOrbEffect() {
   // Create new Orb instance
   orb = new Orb(joinButton, {
     hue: 0,
-    hoverIntensity: 0.5,
+    hoverIntensity: 0.2,
     rotateOnHover: true,
     forceHoverState: false
   });

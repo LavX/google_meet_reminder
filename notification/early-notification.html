@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> </title>
+  <link rel="stylesheet" href="notification.css">
+  <style>
+    /* Additional styles for early notification */
+    .time-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 20px;
+      padding: 6px 15px;
+      font-weight: bold;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .time-badge-icon {
+      margin-right: 6px;
+    }
+
+    .agenda-container {
+      margin-top: 20px;
+      padding: 15px;
+      padding-right: 10px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .agenda-title {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+
+    .attendees-container {
+      margin-bottom: 10px;
+    }
+
+    .attendees-title {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .attendees-list {
+      font-size: 14px;
+      line-height: 1.4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .meeting-agenda {
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    /* Make the entire window draggable */
+    body {
+      -webkit-app-region: drag;
+    }
+
+    /* Make buttons not draggable */
+    button, input {
+      -webkit-app-region: no-drag;
+    }
+
+    /* Custom scrollbar styles */
+    .agenda-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .agenda-container::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 3px;
+    }
+    
+  </style>
+</head>
+<body>
+  <!-- Aurora background container -->
+  <div id="aurora-container" class="aurora-container"></div>
+  
+  <!-- Time remaining badge -->
+  <div class="time-badge">
+    <span class="time-badge-icon">⏰</span>
+    <span id="minutes-remaining">15</span> min
+  </div>
+  
+  <div class="notification-container">
+    <!-- Meeting info section -->
+    <div class="meeting-info">
+      <div id="meeting-title" class="meeting-title">Loading meeting details...</div>
+      <div class="meeting-time">
+        <span id="meeting-time">--:--</span>
+      </div>
+      
+      <!-- Agenda section -->
+      <div class="agenda-container">
+        <!-- Attendees section -->
+        <div class="attendees-container">
+          <div class="attendees-title">Attendees</div>
+          <div id="meeting-attendees" class="attendees-list">Loading attendees...</div>
+        </div>
+        <div class="agenda-title">Agenda</div>
+        <div id="meeting-agenda" class="meeting-agenda">
+          Loading agenda...
+        </div>
+      </div>
+    </div>
+    
+    <!-- Orb Prepare button section -->
+    <div class="orb-container" id="prepare-button">
+      <div class="orb-text">Dismiss</div>
+    </div>
+  </div>
+  <!-- Audio element for ringtone -->
+  <audio id="ringtone">
+    <source id="ringtone-source" src="../assets/sounds/ringtone.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+  
+  <script src="aurora.js"></script>
+  <script src="orb.js"></script>
+  <script src="../js/storage-manager.js"></script>
+  <script src="early-notification.js"></script>
+</body>
+</html>

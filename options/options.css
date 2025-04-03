@@ -56,6 +56,170 @@ header p {
   margin-bottom: 20px;
 }
 
+/* Toggle switch styles */
+.toggle-setting {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  margin-right: 10px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #1a73e8;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #1a73e8;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Setting group styles */
+.setting-group {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* Early notification settings styles */
+.interval-settings {
+  margin-top: 16px;
+  padding-left: 24px;
+  transition: opacity 0.3s;
+}
+
+.interval-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.interval-row:last-child {
+  border-bottom: none;
+}
+
+/* Snooze settings styles */
+.setting-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.setting-row label {
+  margin-right: 10px;
+}
+
+.setting-row input[type="number"] {
+  width: 60px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 5px;
+}
+
+.custom-durations h3 {
+  font-size: 14px;
+  color: #5f6368;
+  margin: 16px 0 8px;
+}
+
+.duration-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.duration-chip {
+  background-color: #e8f0fe;
+  border-radius: 16px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.duration-chip span {
+  margin-right: 8px;
+}
+
+.duration-chip button {
+  background: none;
+  border: none;
+  color: #5f6368;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.add-duration {
+  display: flex;
+  gap: 8px;
+}
+
+.add-duration input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.add-duration button {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 0 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 /* Ringtone grid styles */
 .ringtone-grid {
   display: grid;

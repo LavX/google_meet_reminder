@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Google Meet Reminder",
   "version": "1.0.0",
-  "description": "Aggressively reminds you of Google Meet calls with popup and sound alerts",
+  "description": "Never miss a Google Meet call with early notifications, snooze functionality, and customizable alerts",
   "icons": {
     "16": "assets/icons/icon.png",
     "48": "assets/icons/icon.png",
@@ -42,6 +42,7 @@
     {
       "resources": [
         "notification/notification.html",
+        "notification/early-notification.html",
         "assets/sounds/ringtone.mp3",
         "assets/sounds/skype_ringtone.mp3",
         "assets/sounds/(Grace UX) Basic_Bell.ogg",
